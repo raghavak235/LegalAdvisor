@@ -1,17 +1,19 @@
 # server.py
 import asyncio
 import websockets
+from flask import Flask
 from custom_model import CustomLanguageModel
 
 # Initialize custom language model
 custom_model = CustomLanguageModel()
+app = Flask(__name__)
 
-async def handle_client(websocket, path):
+@app.route("/")
+async def handle_client(websocket):
     print("Client connected")
     try:
         async for message in websocket:
             print(f"Received message: {message}")
-
             # Process the message and send response back to the client
             response = custom_model.generate_response(message)
             await websocket.send(response)
