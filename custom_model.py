@@ -4,28 +4,33 @@ from langchain_community.embeddings.openai import OpenAIEmbeddings
 from langchain_community.vectorstores import FAISS
 from langchain.chains import RetrievalQA
 from langchain_community.llms import OpenAI
+from gru_model import GRUModel
+from utility import Utility
+import torch
 
 # custom_model.py
 class CustomLanguageModel:
     def generate_response(self, prompt):
-        # Load document using PyPDFLoader document loader
-        loader = PyPDFLoader("ipc.pdf")
-        documents = loader.load()
-        # Split document in chunks
-        text_splitter = CharacterTextSplitter(chunk_size=1000, chunk_overlap=30, separator="\n")
-        docs = text_splitter.split_documents(documents=documents)
-        embeddings = OpenAIEmbeddings()
+        # Replace 'example.pdf' with the path to your PDF file
+        pdf_text = Utility.extract_text_from_pdf('example.pdf')
+        embeddings = Utility.generate_vectors(pdf_text)
+        print("Embeddings shape:", embeddings.shape)
         # Create vectors
-        vectorstore = FAISS.from_documents(docs, embeddings)
-         # Persist the vectors locally on disk
-        vectorstore.save_local("faiss_index_constitution")
-
-         # Load from local storage
-        persisted_vectorstore = FAISS.load_local("faiss_index_constitution", embeddings)
-
-        # Use RetrievalQA chain for orchestration
-        qa = RetrievalQA.from_chain_type(llm=OpenAI(), chain_type="stuff", retriever=persisted_vectorstore.as_retriever())
-        result = qa.run(prompt)
-        print(result)
-        return result
+        # Persist the vectors locally on disk
+        # Load from local storage
+        # Load your persisted vector here, it could be from a file, database, etc.
+        # Define dimensions for GRU input and output
+        gru_input_size = embeddings.size(1)  # Input size is the size of the persisted vector
+        gru_hidden_size = 50  # Adjust as needed
+        gru_output_size = 1  # Adjust as needed
+        # Instantiate GRU model
+        gru_model = GRUModel(gru_input_size, gru_hidden_size, output_size=gru_output_size)
+        # Initialize the GRU model weights
+        # (You can skip this step if you're loading pre-trained weights)
+        torch.nn.init.xavier_uniform_(gru_model.gru.weight_ih_l0)
+        torch.nn.init.xavier_uniform_(gru_model.gru.weight_hh_l0)
+        # Assuming 'embeddings' contains the BERT embeddings obtained from the PDF text
+        gru_output = gru_model(embeddings)
+        print("GRU output:", gru_output)
+        return gru_output
 
