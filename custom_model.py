@@ -8,14 +8,15 @@ from gru_model import GRUModel
 from utility import Utility
 import torch
 import re
+from torch.utils.data import DataLoader, TensorDataset
 
 # custom_model.py
 class CustomLanguageModel:
     def generate_response(self, prompt):
         # Replace 'example.pdf' with the path to your PDF file
         text = Utility.extract_text_from_pdf('/Users/yaswanthkalvala/gitprojects/LLM/LegalAdvisor/test.pdf')
-        #embeddings = Utility.generate_vectors(text)
-        #print("Embeddings shape:", embeddings.shape)
+        embeddings = Utility.generate_vectors(text)
+        print("Embeddings shape:", embeddings.shape)
         # Tokenize the text
         # This is a simple example using whitespace tokenization and removing punctuation
         tokens = re.findall(r'\b\w+\b', text.lower())  # Tokenization with lowercase conversion and punctuation removal
@@ -35,7 +36,22 @@ class CustomLanguageModel:
         print(indexed_tokens)
 
         # Convert indexed tokens to PyTorch tensor
-        input_tensor = torch.tensor(indexed_tokens).unsqueeze(0)  # Add batch dimension
+        # input_tensor = torch.tensor(indexed_tokens).unsqueeze(0)  # Add batch dimension
+        
+        #input_tensor = torch.randn(1, 7, 768)
+        # Convert indexed tokens to PyTorch tensor
+        input_tensor = torch.tensor(indexed_tokens, dtype=torch.long)
+
+        # Define batch size
+        batch_size = 64
+
+        # Create DataLoader for the data tensor
+        data_loader = DataLoader(input_tensor, batch_size=batch_size, shuffle=True)
+
+        # Example usage of data_loader:
+        for batch in data_loader:
+            # Process each batch as needed (e.g., pass through model for training)
+            print(batch)
 
         print(input_tensor)
         # Parameters
@@ -44,11 +60,11 @@ class CustomLanguageModel:
         # Load from local storage
         # Load your persisted vector here, it could be from a file, database, etc.
         # Define dimensions for GRU input and output
-        # gru_input_size = embeddings.size(1)  # Input size is the size of the persisted vector
-        gru_input_size = len(indexed_tokens)
+        gru_input_size = embeddings.size(2)  # Input size is the size of the persisted vector
+        # gru_input_size = len(indexed_tokens)
         print(gru_input_size)
-        gru_hidden_size = 256  # Adjust as needed
-        gru_output_size = 1  # Adjust as needed
+        gru_hidden_size = 64  # Adjust as needed
+        gru_output_size = 10  # Adjust as needed
         # Instantiate GRU model
         gru_model = GRUModel(gru_input_size, gru_hidden_size, output_size=gru_output_size)
         # Initialize the GRU model weights
@@ -57,7 +73,7 @@ class CustomLanguageModel:
         torch.nn.init.xavier_uniform_(gru_model.gru.weight_hh_l0)
         # Assuming 'embeddings' contains the BERT embeddings obtained from the PDF text
         # Assuming input_tensor is your input tensor of type torch.int64
-        input_tensor = input_tensor.to(torch.float32)
+        #input_tensor = input_tensor.to(torch.float32)
         gru_output = gru_model(input_tensor)
         print("GRU output:", gru_output)
         return gru_output
