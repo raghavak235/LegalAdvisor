@@ -1,4 +1,3 @@
-# server.py
 import asyncio
 import websockets
 from flask import Flask
